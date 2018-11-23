@@ -1,0 +1,65 @@
+From f707d01e742e7a088d1328a8e1b5fdc8ce25c56f Mon Sep 17 00:00:00 2001
+From: Kyle Feng <kylefeng28@gmail.com>
+Date: Sun, 11 Nov 2018 15:52:38 -0500
+Subject: [PATCH] Patch to work on macOS
+
+---
+ config.mk |  2 +-
+ x.c       | 20 ++++++++++++++++++++
+ 2 files changed, 21 insertions(+), 1 deletion(-)
+
+diff --git a/config.mk b/config.mk
+index e676105..3390a51 100644
+--- a/config.mk
++++ b/config.mk
+@@ -14,7 +14,7 @@ X11LIB = /usr/X11R6/lib
+ INCS = -I$(X11INC) \
+        `pkg-config --cflags fontconfig` \
+        `pkg-config --cflags freetype2`
+-LIBS = -L$(X11LIB) -lm -lrt -lX11 -lutil -lXft \
++LIBS = -L$(X11LIB) -lm -lX11 -lutil -lXft \
+        `pkg-config --libs fontconfig` \
+        `pkg-config --libs freetype2`
+ 
+diff --git a/x.c b/x.c
+index 0422421..1b281e4 100644
+--- a/x.c
++++ b/x.c
+@@ -5,7 +5,26 @@
+ #include <locale.h>
+ #include <signal.h>
+ #include <sys/select.h>
++
++#ifdef __MACH__
++#include <mach/mach_time.h>
++#define CLOCK_REALTIME 0
++#define CLOCK_MONOTONIC 0
++int clock_gettime(int clk_id, struct timespec *t){
++    mach_timebase_info_data_t timebase;
++    mach_timebase_info(&timebase);
++    uint64_t time;
++    time = mach_absolute_time();
++    double nseconds = ((double)time * (double)timebase.numer)/((double)timebase.denom);
++    double seconds = ((double)time * (double)timebase.numer)/((double)timebase.denom * 1e9);
++    t->tv_sec = seconds;
++    t->tv_nsec = nseconds;
++    return 0;
++}
++#else
+ #include <time.h>
++#endif
++
+ #include <unistd.h>
+ #include <libgen.h>
+ #include <X11/Xatom.h>
+@@ -15,6 +34,7 @@
+ #include <X11/Xft/Xft.h>
+ #include <X11/XKBlib.h>
+ 
++
+ static char *argv0;
+ #include "arg.h"
+ #include "st.h"
+-- 
+2.19.0
+
