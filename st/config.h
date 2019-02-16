@@ -181,7 +181,7 @@ ResourcePref resources[] = {
 		{ "background",   STRING,  &colorname[DEFAULT_BG] },
 		{ "foreground",   STRING,  &colorname[DEFAULT_FG] },
 		{ "cursorColor",  STRING,  &colorname[DEFAULT_CS] },
-		{ "cursorColor2",  STRING, &colorname[DEFAULT_RCS] },
+		{ "cursorColor2", STRING,  &colorname[DEFAULT_RCS] },
 		{ "termname",     STRING,  &termname },
 		{ "shell",        STRING,  &shell },
 		{ "xfps",         INTEGER, &xfps },
@@ -192,6 +192,7 @@ ResourcePref resources[] = {
 		{ "borderpx",     INTEGER, &borderpx },
 		{ "cwscale",      FLOAT,   &cwscale },
 		{ "chscale",      FLOAT,   &chscale },
+		{ "alpha",        FLOAT,   &alpha },
 };
 
 /*

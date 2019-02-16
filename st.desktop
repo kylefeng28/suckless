@@ -2,7 +2,7 @@
 Name=st
 GenericName=Terminal
 Comment=Suckless terminal emulator for X
-Exec=tabbed -c -r 2 st -w '' -t "Simple Terminal"
+Exec=tabbed -c -r 2 st -w '' -t 'Simple Terminal'
 Terminal=false
 Type=Application
 Encoding=UTF-8

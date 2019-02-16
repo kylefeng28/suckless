@@ -10,8 +10,8 @@
 	- autohide
 
 ```
-tabbed -c -r 2 st -w ''
-```
+$ xrdb ~/.Xresources # reload .Xresources
+$ tabbed -c -r 2 st -w ''
 
 ## Inspirations
 - [mitchweaver's suckless patches](https://github.com/mitchweaver/suckless)
