@@ -1,10 +1,13 @@
 # suckless
 
-- st: 0.8.2
+- **st**: e85b6b6 (> 0.8.2)
 	- scrollback (with mouse)
 	- vertcenter
 	- xresources
 	- alpha
+- **tabbed**: b5f9ec6 (> 0.6)
+	- alpha
+	- autohide
 
 ## Inspirations
 - [mitchweaver's suckless patches](https://github.com/mitchweaver/suckless)
