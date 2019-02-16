@@ -1,6 +1,7 @@
 # suckless
 
-st: 0.8.2
+- st: 0.8.2
+	- scrollback (with mouse)
 
 ## Inspirations
 - [mitchweaver's suckless patches](https://github.com/mitchweaver/suckless)
