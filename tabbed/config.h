@@ -33,17 +33,24 @@ static Bool npisrelative  = False;
         } \
 }
 
-#define MODKEY ControlMask
+/* X modifiers */
+#define XK_ANY_MOD    UINT_MAX
+#define XK_NO_MOD     0
+#define XK_SWITCH_MOD (1<<13)
+
+#define MODKEY Mod1Mask
+#define TERMMOD (ControlMask|ShiftMask)
+
 static Key keys[] = {
 	/* modifier             key        function     argument */
-	{ MODKEY|ShiftMask,     XK_Return, focusonce,   { 0 } },
-	{ MODKEY|ShiftMask,     XK_Return, spawn,       { 0 } },
+	{ TERMMOD,              XK_t, focusonce,        { 0 } },
+	{ TERMMOD,              XK_t, spawn,            { 0 } },
 
-	{ MODKEY|ShiftMask,     XK_l,      rotate,      { .i = +1 } },
-	{ MODKEY|ShiftMask,     XK_h,      rotate,      { .i = -1 } },
-	{ MODKEY|ShiftMask,     XK_j,      movetab,     { .i = -1 } },
-	{ MODKEY|ShiftMask,     XK_k,      movetab,     { .i = +1 } },
-	{ MODKEY,               XK_Tab,    rotate,      { .i = 0 } },
+	{ MODKEY|ShiftMask,     XK_bracketleft, rotate, { .i = -1 } },
+	{ MODKEY|ShiftMask,     XK_bracketright,rotate, { .i = +1 } },
+	{ MODKEY,               XK_bracketleft, movetab,{ .i = -1 } },
+	{ MODKEY,               XK_bracketright,movetab,{ .i = +1 } },
+	{ ControlMask,          XK_Tab,    rotate,      { .i = 0 } },
 
 	{ MODKEY,               XK_grave,  spawn,       SETPROP("_TABBED_SELECT_TAB") },
 	{ MODKEY,               XK_1,      move,        { .i = 0 } },
@@ -57,10 +64,10 @@ static Key keys[] = {
 	{ MODKEY,               XK_9,      move,        { .i = 8 } },
 	{ MODKEY,               XK_0,      move,        { .i = 9 } },
 
-	{ MODKEY,               XK_q,      killclient,  { 0 } },
+	{ TERMMOD,              XK_q,      killclient,  { 0 } },
 
 	{ MODKEY,               XK_u,      focusurgent, { 0 } },
 	{ MODKEY|ShiftMask,     XK_u,      toggle,      { .v = (void*) &urgentswitch } },
 
-	{ 0,                    XK_F11,    fullscreen,  { 0 } },
+	{ XK_NO_MOD,            XK_F11,    fullscreen,  { 0 } },
 };

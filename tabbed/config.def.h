@@ -33,6 +33,11 @@ static Bool npisrelative  = False;
         } \
 }
 
+/* X modifiers */
+#define XK_ANY_MOD    UINT_MAX
+#define XK_NO_MOD     0
+#define XK_SWITCH_MOD (1<<13)
+
 #define MODKEY ControlMask
 static Key keys[] = {
 	/* modifier             key        function     argument */
@@ -62,5 +67,5 @@ static Key keys[] = {
 	{ MODKEY,               XK_u,      focusurgent, { 0 } },
 	{ MODKEY|ShiftMask,     XK_u,      toggle,      { .v = (void*) &urgentswitch } },
 
-	{ 0,                    XK_F11,    fullscreen,  { 0 } },
+	{ XK_NO_MOD,            XK_F11,    fullscreen,  { 0 } },
 };
