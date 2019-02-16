@@ -2663,7 +2663,6 @@ draw(void)
 				term.ocx, term.ocy, term.line[term.ocy][term.ocx]);
 	term.ocx = cx, term.ocy = term.c.y;
 	xfinishdraw();
-	xximspot(term.ocx, term.ocy);
 }
 
 void

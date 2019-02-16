@@ -2,6 +2,9 @@
 
 - st: 0.8.2
 	- scrollback (with mouse)
+	- vertcenter
+	- xresources
+	- alpha
 
 ## Inspirations
 - [mitchweaver's suckless patches](https://github.com/mitchweaver/suckless)
