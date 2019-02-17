@@ -156,6 +156,11 @@ typedef struct {
 	GC gc;
 } DC;
 
+typedef struct {
+	Pixmap pm;
+	int w, h; /* pixmap width and height */
+} BGPixmap;
+
 static inline ushort sixd_to_16bit(int);
 static int xmakeglyphfontspecs(XftGlyphFontSpec *, const Glyph *, int, int, int);
 static void xdrawglyphfontspecs(const XftGlyphFontSpec *, Glyph, int, int, int);
@@ -166,6 +171,7 @@ static void xinit(int, int);
 static void cresize(int, int);
 static void xresize(int, int);
 static void xhints(void);
+static int xloadbgpixmap(char *);
 static int xloadcolor(int, const char *, Color *);
 static int xloadfont(Font *, FcPattern *);
 static void xloadfonts(char *, double);
@@ -230,6 +236,7 @@ static DC dc;
 static XWindow xw;
 static XSelection xsel;
 static TermWindow win;
+static BGPixmap bgpixmap;
 
 /* Font Ring Cache */
 enum {
@@ -736,6 +743,31 @@ sixd_to_16bit(int x)
 }
 
 int
+xloadbgpixmap(char *filename) {
+	int dummy;
+	int rc = XReadBitmapFile(xw.dpy, xw.win,
+			filename,
+			&bgpixmap.w, &bgpixmap.h,
+			&bgpixmap.pm,
+			NULL, NULL /* don't care about hotspots */);
+
+	/* check for failure or success. */
+	switch (rc) {
+		case BitmapOpenFailed:
+			die("XReadBitmapFile - could not open file %s.\n", filename);
+			break;
+		case BitmapFileInvalid:
+			die("XReadBitmapFile - file '%s' doesn't contain a valid bitmap.\n", filename);
+			break;
+		case BitmapNoMemory:
+			die("XReadBitmapFile - not enough memory.\n");
+			break;
+	}
+
+	printf("something works depth is %i?\n", xw.depth);
+}
+
+int
 xloadcolor(int i, const char *name, Color *ncolor)
 {
 	XRenderColor color = { .alpha = 0xffff };
@@ -1056,6 +1088,7 @@ xinit(int cols, int rows)
 		XGetWindowAttributes(xw.dpy, parent, &attr);
 		xw.depth = attr.depth;
 	}
+	xw.depth = 24; // TODO
 
 	XMatchVisualInfo(xw.dpy, xw.scr, xw.depth, TrueColor, &vis);
 	xw.vis = vis.visual;
@@ -1099,6 +1132,11 @@ xinit(int cols, int rows)
 	dc.gc = XCreateGC(xw.dpy, xw.buf, GCGraphicsExposures, &gcvalues);
 	XSetForeground(xw.dpy, dc.gc, dc.col[defaultbg].pixel);
 	XFillRectangle(xw.dpy, xw.buf, dc.gc, 0, 0, win.w, win.h);
+
+	/* background pixmap */
+	xloadbgpixmap("/home/sakuya/rice/eevee.xbm");
+	XSetWindowBackgroundPixmap(xw.dpy, xw.win, bgpixmap.pm);
+	XFreePixmap(xw.dpy, bgpixmap.pm);
 
 	/* font spec buffer */
 	xw.specbuf = xmalloc(cols * sizeof(GlyphFontSpec));
