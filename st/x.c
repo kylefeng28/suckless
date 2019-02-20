@@ -16,6 +16,9 @@
 #include <X11/XKBlib.h>
 #include <X11/Xresource.h>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 static char *argv0;
 #include "arg.h"
 #include "st.h"
@@ -156,11 +159,6 @@ typedef struct {
 	GC gc;
 } DC;
 
-typedef struct {
-	Pixmap pm;
-	int w, h; /* pixmap width and height */
-} BGPixmap;
-
 static inline ushort sixd_to_16bit(int);
 static int xmakeglyphfontspecs(XftGlyphFontSpec *, const Glyph *, int, int, int);
 static void xdrawglyphfontspecs(const XftGlyphFontSpec *, Glyph, int, int, int);
@@ -236,7 +234,11 @@ static DC dc;
 static XWindow xw;
 static XSelection xsel;
 static TermWindow win;
-static BGPixmap bgpixmap;
+static struct {
+	Pixmap pm;
+	int width, height;
+	int channels;
+} bgpixmap;
 
 /* Font Ring Cache */
 enum {
@@ -729,6 +731,10 @@ xresize(int col, int row)
 	XFreePixmap(xw.dpy, xw.buf);
 	xw.buf = XCreatePixmap(xw.dpy, xw.win, win.w, win.h,
 			xw.depth);
+
+	XCopyArea(xw.dpy, bgpixmap.pm, xw.buf, dc.gc, 0, 0, win.w,
+			win.h, 0, 0);
+
 	XftDrawChange(xw.draw, xw.buf);
 	xclear(0, 0, win.w, win.h);
 
@@ -744,27 +750,27 @@ sixd_to_16bit(int x)
 
 int
 xloadbgpixmap(char *filename) {
-	int dummy;
-	int rc = XReadBitmapFile(xw.dpy, xw.win,
-			filename,
-			&bgpixmap.w, &bgpixmap.h,
-			&bgpixmap.pm,
-			NULL, NULL /* don't care about hotspots */);
+	// Load image using stb_image
+	unsigned char *img_data = stbi_load(filename,
+			&bgpixmap.width, &bgpixmap.height,
+			&bgpixmap.channels, STBI_rgb_alpha);
 
-	/* check for failure or success. */
-	switch (rc) {
-		case BitmapOpenFailed:
-			die("XReadBitmapFile - could not open file %s.\n", filename);
-			break;
-		case BitmapFileInvalid:
-			die("XReadBitmapFile - file '%s' doesn't contain a valid bitmap.\n", filename);
-			break;
-		case BitmapNoMemory:
-			die("XReadBitmapFile - not enough memory.\n");
-			break;
+	if (img_data == NULL) {
+		die("could not load image from %s\n.", filename);
 	}
 
-	printf("something works depth is %i?\n", xw.depth);
+	// Create XImage
+	XImage *img = XCreateImage(xw.dpy, xw.vis, xw.depth, ZPixmap,
+			0 /*offset*/, img_data, bgpixmap.width, bgpixmap.height, 32 /*bitmap_pad*/, 0);
+
+	// Copy image data to pixmap
+	bgpixmap.pm = XCreatePixmap(xw.dpy, xw.win, bgpixmap.width, bgpixmap.height, xw.depth);
+	XPutImage(xw.dpy, bgpixmap.pm, dc.gc, img, 0, 0, 0, 0, bgpixmap.width, bgpixmap.height); // 0, 0, 0, 0 are src x,y and dst x,y
+
+	XDestroyImage(img);
+	stbi_image_free(img);
+
+	printf("something works? window depth is %i, image has %i channels?\n", xw.depth, bgpixmap.channels);
 }
 
 int
@@ -815,8 +821,8 @@ xloadcols(void)
 		}
 
 	/* set alpha value of bg color */
-	if (opt_alpha)
-		alpha = strtof(opt_alpha, NULL);
+	if (opt_alpha) {
+		alpha = strtof(opt_alpha, NULL); }
 	dc.col[defaultbg].color.alpha = (unsigned short)(0xffff * alpha);
 	dc.col[defaultbg].pixel &= 0x00FFFFFF;
 	dc.col[defaultbg].pixel |= (unsigned char)(0xff * alpha) << 24;
@@ -847,9 +853,15 @@ xsetcolorname(int x, const char *name)
 void
 xclear(int x1, int y1, int x2, int y2)
 {
-	XftDrawRect(xw.draw,
-			&dc.col[IS_SET(MODE_REVERSE)? defaultfg : defaultbg],
-			x1, y1, x2-x1, y2-y1);
+	if (pixmap) {
+		XCopyArea(xw.dpy, bgpixmap.pm, xw.buf, dc.gc,
+				x1, y1, x2-x1, y2-y1, /* src x, y, w, h */
+				x1, y1 /* dest x, y */);
+	} else {
+		XftDrawRect(xw.draw,
+				&dc.col[IS_SET(MODE_REVERSE)? defaultfg : defaultbg],
+				x1, y1, x2-x1, y2-y1);
+	}
 }
 
 void
@@ -1088,7 +1100,6 @@ xinit(int cols, int rows)
 		XGetWindowAttributes(xw.dpy, parent, &attr);
 		xw.depth = attr.depth;
 	}
-	xw.depth = 24; // TODO
 
 	XMatchVisualInfo(xw.dpy, xw.scr, xw.depth, TrueColor, &vis);
 	xw.vis = vis.visual;
@@ -1130,13 +1141,23 @@ xinit(int cols, int rows)
 	gcvalues.graphics_exposures = False;
 	xw.buf = XCreatePixmap(xw.dpy, xw.win, win.w, win.h, xw.depth);
 	dc.gc = XCreateGC(xw.dpy, xw.buf, GCGraphicsExposures, &gcvalues);
-	XSetForeground(xw.dpy, dc.gc, dc.col[defaultbg].pixel);
-	XFillRectangle(xw.dpy, xw.buf, dc.gc, 0, 0, win.w, win.h);
 
 	/* background pixmap */
-	xloadbgpixmap("/home/sakuya/rice/eevee.xbm");
-	XSetWindowBackgroundPixmap(xw.dpy, xw.win, bgpixmap.pm);
-	XFreePixmap(xw.dpy, bgpixmap.pm);
+	if (pixmap) {
+		xloadbgpixmap(pixmap);
+		XSetWindowBackgroundPixmap(xw.dpy, xw.win, bgpixmap.pm);
+
+		XCopyArea(xw.dpy, bgpixmap.pm, xw.buf, dc.gc,
+				0, 0, bgpixmap.width, bgpixmap.height, /* src x, y, w, h */
+				0, 0 /* dest x, y */);
+
+		/* XFreePixmap(xw.dpy, bgpixmap.pm); */ // TODO
+	}
+	/* background color */
+	else {
+		XSetForeground(xw.dpy, dc.gc, dc.col[defaultbg].pixel);
+		XFillRectangle(xw.dpy, xw.buf, dc.gc, 0, 0, win.w, win.h);
+	}
 
 	/* font spec buffer */
 	xw.specbuf = xmalloc(cols * sizeof(GlyphFontSpec));
@@ -1447,7 +1468,9 @@ xdrawglyphfontspecs(const XftGlyphFontSpec *specs, Glyph base, int len, int x, i
 		xclear(winx, winy + win.ch, winx + width, win.h);
 
 	/* Clean up the region we want to draw to. */
-	XftDrawRect(xw.draw, bg, winx, winy, width, win.ch);
+	/* XftDrawRect(xw.draw, bg, winx, winy, width, win.ch); */
+	// this ignores bg, but should be fine for non-true color
+	xclear(winx, winy, winx + width, winy + win.ch);
 
 	/* Set the clip region because Xft is sometimes dirty. */
 	r.x = 0;
@@ -1633,9 +1656,12 @@ xfinishdraw(void)
 {
 	XCopyArea(xw.dpy, xw.buf, xw.win, dc.gc, 0, 0, win.w,
 			win.h, 0, 0);
+	// TODO wrap
+	/*
 	XSetForeground(xw.dpy, dc.gc,
 			dc.col[IS_SET(MODE_REVERSE)?
 				defaultfg : defaultbg].pixel);
+				*/
 }
 
 void

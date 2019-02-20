@@ -84,6 +84,9 @@ unsigned int tabspaces = 4;
 /* bg opacity */
 float alpha = 0.8;
 
+/* bg pixmap */
+char *pixmap = (char*) "/home/sakuya/rice/eevee.png";
+
 /* Terminal colors (16 first used in escape sequence) */
 static const char *colorname[] = {
 	/* 8 normal colors */
@@ -125,8 +128,8 @@ static const char *colorname[] = {
 #define DEFAULT_RCS 257
 unsigned int defaultfg = DEFAULT_FG;
 unsigned int defaultbg = DEFAULT_BG;
-static unsigned int defaultcs = DEFAULT_CS;
-static unsigned int defaultrcs = DEFAULT_RCS;
+unsigned int defaultcs = DEFAULT_CS;
+unsigned int defaultrcs = DEFAULT_RCS;
 
 /*
  * Default shape of cursor
@@ -193,6 +196,7 @@ ResourcePref resources[] = {
 		{ "cwscale",      FLOAT,   &cwscale },
 		{ "chscale",      FLOAT,   &chscale },
 		{ "alpha",        FLOAT,   &alpha },
+		{ "pixmap",       STRING,  &pixmap },
 };
 
 /*
